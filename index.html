@@ -5,9 +5,10 @@
   <title>Simple Shopify Product</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
+    :root { color-scheme: light dark; }
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; padding: 24px; max-width: 720px; margin: 0 auto; }
     img { max-width: 100%; height: auto; border-radius: 12px; }
-    .card { border: 1px solid #e5e5e5; border-radius: 16px; padding: 16px; } 
+    .card { border: 1px solid #e5e5e5; border-radius: 16px; padding: 16px; }
     .row { display: flex; gap: 12px; align-items: center; margin-top: 12px; }
     button { padding: 10px 16px; border: 0; border-radius: 10px; cursor: pointer; }
     #buyButton { background: black; color: white; }
@@ -26,24 +27,59 @@
       <input id="qty" type="number" min="1" value="1" style="width: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 8px;" />
       <button id="buyButton">Add to Cart → Checkout</button>
     </div>
-    <p class="note">You’ll be redirected to secure checkout on your domain once configured in Shopify.</p>
+    <p class="note">You’ll be redirected to secure checkout.</p>
     <p id="message" class="note" role="status"></p>
   </div>
 
   <script>
-    // ── Configure these three values ─────────────────────────────────────────────
-    const SHOPIFY_DOMAIN = "pfpzgb-sqtony.myshopify.com"; // e.g. pfpzgb-sqtony.myshopify.com
-    const API_VERSION = "2025-01";
-    const STOREFRONT_TOKEN = "ac7ddbaa8a0177076cfdca77b130383e"; // Public Storefront API token
-    const VARIANT_GID = "gid://shopify/ProductVariant/54773228339545"; // Real variant GID
-    // ────────────────────────────────────────────────────────────────────────────
+    // ── Configure these values ─────────────────────────────────────────────
+    const SHOPIFY_DOMAIN   = "pfpzgb-sqtony.myshopify.com"; // your shop domain
+    const API_VERSION      = "2025-01";                     // a current Storefront API version
+    const STOREFRONT_TOKEN = "ac7ddbaa8a0177076cfdca77b130383e"; // public Storefront API token
+    const VARIANT_GID      = "gid://shopify/ProductVariant/54773228339545"; // real variant GID
+    const PARENT_DOMAIN    = ".testtheedgefun.com";         // parent domain for cookie (covers www + checkout)
+    // ──────────────────────────────────────────────────────────────────────
 
     const API_URL = `https://${SHOPIFY_DOMAIN}/api/${API_VERSION}/graphql.json`;
-    const buyBtn = document.getElementById("buyButton");
-    const qtyInput = document.getElementById("qty");
-    const msg = document.getElementById("message");
+    const buyBtn  = document.getElementById("buyButton");
+    const qtyInput= document.getElementById("qty");
+    const msg     = document.getElementById("message");
 
-    // Uses Cart API so we get checkoutUrl (Shopify decides host based on your domain settings)
+    // --- Cookie helpers ---
+    function setCookie(name, value, {
+      domain = PARENT_DOMAIN,
+      path = '/',
+      maxAge = 31536000,      // 1 year (ITP may shorten on Safari)
+      sameSite = 'Lax',       // good for same-site subdomain nav
+      secure = true
+    } = {}) {
+      const parts = [
+        `${encodeURIComponent(name)}=${encodeURIComponent(value)}`,
+        `Path=${path}`,
+        `Domain=${domain}`,
+        `Max-Age=${maxAge}`,
+        `SameSite=${sameSite}`
+      ];
+      if (secure) parts.push('Secure'); // required on HTTPS
+      document.cookie = parts.join('; ');
+    }
+
+    function getCookie(name) {
+      const encoded = encodeURIComponent(name);
+      return document.cookie
+        .split('; ')
+        .map(v => v.split('='))
+        .find(([k]) => k === encoded)?.[1] || undefined;
+    }
+
+    function uuid() {
+      // RFC4122-ish, good enough for a visitor/session id
+      return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c =>
+        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+      );
+    }
+
+    // Storefront Cart API: create a cart to get checkoutUrl
     const CART_CREATE = `
       mutation CreateCart($lines: [CartLineInput!]!, $buyerIdentity: CartBuyerIdentityInput) {
         cartCreate(input: { lines: $lines, buyerIdentity: $buyerIdentity }) {
@@ -59,8 +95,7 @@
     async function createCartAndCheckout(variantId, quantity) {
       const variables = {
         lines: [{ merchandiseId: variantId, quantity: Number(quantity) || 1 }],
-        // Set buyer country to influence currency/pricing via Shopify Markets (EUR for Austria)
-        buyerIdentity: { countryCode: "AT" }
+        buyerIdentity: { countryCode: "AT" } // optional; influences pricing/Markets
       };
 
       const res = await fetch(API_URL, {
@@ -72,12 +107,10 @@
         body: JSON.stringify({ query: CART_CREATE, variables })
       });
 
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      const err = json?.data?.cartCreate?.userErrors?.[0];
-      if (err) throw new Error(err.message || "Cart error");
+      const ue = json?.data?.cartCreate?.userErrors;
+      if (ue && ue.length) throw new Error(ue.map(e => e.message).join(', '));
 
       const checkoutUrl = json?.data?.cartCreate?.cart?.checkoutUrl;
       if (!checkoutUrl) throw new Error("No checkoutUrl returned");
@@ -88,8 +121,23 @@
       buyBtn.disabled = true;
       msg.textContent = "Preparing checkout…";
       try {
+        // 1) Ensure a visitor id cookie exists on the parent domain
+        const existing = getCookie('edgee_id');
+        const id = existing || uuid();
+        if (!existing) {
+          setCookie('edgee_id', id);
+          console.log('[Cookie] edgee_id set on', PARENT_DOMAIN, '=', id);
+        } else {
+          console.log('[Cookie] edgee_id already present =', id);
+        }
+
+        // 2) Create cart → get checkoutUrl
         const url = await createCartAndCheckout(VARIANT_GID, qtyInput.value);
-        // ✅ Redirect to Shopify checkout (will use checkout.testtheedgefun.com once configured in Shopify)
+
+        // 3) Optional: confirm cookie readable on this page before leaving
+        console.log('[Cookie] readback on www:', getCookie('edgee_id'));
+
+        // 4) Redirect to Shopify Checkout (cookie is sent with the request)
         window.location.href = url;
       } catch (e) {
         console.error(e);
