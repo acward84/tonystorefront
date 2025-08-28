@@ -19,7 +19,7 @@
 </head>
 <body>
   <div class="card">
-    <h1>My Product Test 4</h1>
+    <h1>My Product Test 6</h1>
     <img src="https://pfpzgb-sqtony.myshopify.com/cdn/shop/files/general-clothes-minimal-1.jpg?v=1750331796&width=1500" width="400" alt="Product image" />
     <p class="price">€25.00</p>
     <div class="row">
@@ -122,20 +122,20 @@
       msg.textContent = "Preparing checkout…";
       try {
         // 1) Ensure a visitor id cookie exists on the parent domain
-        const existing = getCookie('edgee_id');
+        const existing = getCookie('edgee_follow');
         const id = existing || uuid();
         if (!existing) {
-          setCookie('edgee_id', id);
-          console.log('[Cookie] edgee_id set on', PARENT_DOMAIN, '=', id);
+          setCookie('edgee_follow', id);
+          console.log('[Cookie] edgee_follow set on', PARENT_DOMAIN, '=', id);
         } else {
-          console.log('[Cookie] edgee_id already present =', id);
+          console.log('[Cookie] edgee_follow already present =', id);
         }
 
         // 2) Create cart → get checkoutUrl
         const url = await createCartAndCheckout(VARIANT_GID, qtyInput.value);
 
         // 3) Optional: confirm cookie readable on this page before leaving
-        console.log('[Cookie] readback on www:', getCookie('edgee_id'));
+        console.log('[Cookie] readback on www:', getCookie('edgee_follow'));
 
         // 4) Redirect to Shopify Checkout (cookie is sent with the request)
         window.location.href = url;
