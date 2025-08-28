@@ -1,52 +1,103 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Simple Shopify Product2</title>
+  <title>Simple Shopify Product</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; padding: 24px; max-width: 720px; margin: 0 auto; }
+    img { max-width: 100%; height: auto; border-radius: 12px; }
+    .card { border: 1px solid #e5e5e5; border-radius: 16px; padding: 16px; }
+    .row { display: flex; gap: 12px; align-items: center; margin-top: 12px; }
+    button { padding: 10px 16px; border: 0; border-radius: 10px; cursor: pointer; }
+    #buyButton { background: black; color: white; }
+    #buyButton:disabled { opacity: 0.6; cursor: not-allowed; }
+    .price { font-weight: 600; font-size: 18px; margin: 8px 0; }
+    .note { color: #666; font-size: 14px; }
+  </style>
 </head>
 <body>
-  <h1>My Product</h1>
-  <img src="https://cdn.shopify.com/s/files/1/your-product-image.png" width="200" />
-  <p>euro 19.99</p>
-  <button id="buyButton">Add to Cart</button>
+  <div class="card">
+    <h1>My Product</h1>
+    <img src="pfpzgb-sqtony.myshopify.com/cdn/shop/files/general-clothes-minimal-1.jpg?v=1750331796&width=1500" width="400" alt="Product image" />
+    <p class="price">€19.99</p>
+    <div class="row">
+      <label for="qty">Qty</label>
+      <input id="qty" type="number" min="1" value="1" style="width: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 8px;" />
+      <button id="buyButton">Add to Cart → Checkout</button>
+    </div>
+    <p class="note">You’ll be redirected to secure checkout on your domain once configured in Shopify.</p>
+    <p id="message" class="note" role="status"></p>
+  </div>
 
   <script>
-    const SHOPIFY_DOMAIN = "pfpzgb-sqtony.myshopify.com";
-    const API_URL = `https://${SHOPIFY_DOMAIN}/api/2025-01/graphql.json`;
-    const API_TOKEN = "ac7ddbaa8a0177076cfdca77b130383e";
+    // ── Configure these three values ─────────────────────────────────────────────
+    const SHOPIFY_DOMAIN = "YOUR_SHOP.myshopify.com"; // e.g. pfpzgb-sqtony.myshopify.com
+    const API_VERSION = "2025-01";
+    const STOREFRONT_TOKEN = "ac7ddbaa8a0177076cfdca77b130383e"; // Public Storefront API token
+    const VARIANT_GID = "gid://shopify/ProductVariant/1234567890"; // Real variant GID
+    // ────────────────────────────────────────────────────────────────────────────
 
-    // Replace with the product variant ID from Shopify Admin
-    const VARIANT_ID = "gid://shopify/ProductVariant/1234567890";
+    const API_URL = `https://${SHOPIFY_DOMAIN}/api/${API_VERSION}/graphql.json`;
+    const buyBtn = document.getElementById("buyButton");
+    const qtyInput = document.getElementById("qty");
+    const msg = document.getElementById("message");
 
-    async function createCheckout(variantId) {
-      const query = `
-        mutation {
-          checkoutCreate(input: {
-            lineItems: [{ variantId: "${variantId}", quantity: 1 }]
-          }) {
-            checkout {
-              webUrl
-            }
+    // Uses Cart API so we get checkoutUrl (Shopify decides host based on your domain settings)
+    const CART_CREATE = `
+      mutation CreateCart($lines: [CartLineInput!]!, $buyerIdentity: CartBuyerIdentityInput) {
+        cartCreate(input: { lines: $lines, buyerIdentity: $buyerIdentity }) {
+          cart {
+            id
+            checkoutUrl
           }
+          userErrors { field message }
         }
-      `;
+      }
+    `;
+
+    async function createCartAndCheckout(variantId, quantity) {
+      const variables = {
+        lines: [{ merchandiseId: variantId, quantity: Number(quantity) || 1 }],
+        // Set buyer country to influence currency/pricing via Shopify Markets (EUR for Austria)
+        buyerIdentity: { countryCode: "AT" }
+      };
 
       const res = await fetch(API_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Shopify-Storefront-Access-Token": API_TOKEN,
+          "X-Shopify-Storefront-Access-Token": STOREFRONT_TOKEN
         },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query: CART_CREATE, variables })
       });
 
-      const data = await res.json();
-      return data.data.checkoutCreate.checkout.webUrl;
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const json = await res.json();
+      const err = json?.data?.cartCreate?.userErrors?.[0];
+      if (err) throw new Error(err.message || "Cart error");
+
+      const checkoutUrl = json?.data?.cartCreate?.cart?.checkoutUrl;
+      if (!checkoutUrl) throw new Error("No checkoutUrl returned");
+      return checkoutUrl;
     }
 
-    document.getElementById("buyButton").addEventListener("click", async () => {
-      const url = await createCheckout(VARIANT_ID);
-      window.location.href = url; // redirect to Shopify checkout
+    buyBtn.addEventListener("click", async () => {
+      buyBtn.disabled = true;
+      msg.textContent = "Preparing checkout…";
+      try {
+        const url = await createCartAndCheckout(VARIANT_GID, qtyInput.value);
+        // ✅ Redirect to Shopify checkout (will use checkout.testtheedgefun.com once configured in Shopify)
+        window.location.href = url;
+      } catch (e) {
+        console.error(e);
+        alert("Could not start checkout: " + e.message);
+        msg.textContent = "There was a problem starting checkout.";
+      } finally {
+        buyBtn.disabled = false;
+      }
     });
   </script>
 </body>
