@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Simple Shopify Product</title>
+</head>
+<body>
+  <h1>My Product</h1>
+  <img src="https://cdn.shopify.com/s/files/1/your-product-image.png" width="200" />
+  <p>$19.99</p>
+  <button id="buyButton">Add to Cart</button>
+
+  <script>
+    const SHOPIFY_DOMAIN = "YOUR_SHOP.myshopify.com";
+    const API_URL = `https://${SHOPIFY_DOMAIN}/api/2025-01/graphql.json`;
+    const API_TOKEN = "YOUR_STOREFRONT_API_TOKEN";
+
+    // Replace with the product variant ID from Shopify Admin
+    const VARIANT_ID = "gid://shopify/ProductVariant/1234567890";
+
+    async function createCheckout(variantId) {
+      const query = `
+        mutation {
+          checkoutCreate(input: {
+            lineItems: [{ variantId: "${variantId}", quantity: 1 }]
+          }) {
+            checkout {
+              webUrl
+            }
+          }
+        }
+      `;
+
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Storefront-Access-Token": API_TOKEN,
+        },
+        body: JSON.stringify({ query }),
+      });
+
+      const data = await res.json();
+      return data.data.checkoutCreate.checkout.webUrl;
+    }
+
+    document.getElementById("buyButton").addEventListener("click", async () => {
+      const url = await createCheckout(VARIANT_ID);
+      window.location.href = url; // redirect to Shopify checkout
+    });
+  </script>
+</body>
+</html>
