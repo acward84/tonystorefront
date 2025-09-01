@@ -19,7 +19,7 @@
 </head>
 <body>
   <div class="card">
-    <h1>My Product Test 6</h1>
+    <h1>My Product Test Vcrazy 7</h1>
     <img src="https://test.testtheedgefun.com/cdn/shop/files/general-clothes-minimal-1.jpg?v=1750331796&width=1500" width="400" alt="Product image" />
     <p class="price">€25.00</p>
     <div class="row">
@@ -33,11 +33,12 @@
 
   <script>
     // ── Configure these values ─────────────────────────────────────────────
-    const SHOPIFY_DOMAIN   = "test.testtheedgefun.com";//"pfpzgb-sqtony.myshopify.com"; // your shop domain
-    const API_VERSION      = "2025-01";                     // a current Storefront API version
-    const STOREFRONT_TOKEN = "ac7ddbaa8a0177076cfdca77b130383e"; // public Storefront API token
-    const VARIANT_GID      = "gid://shopify/ProductVariant/54773228339545"; // real variant GID
-    const PARENT_DOMAIN    = "testtheedgefun.com";         // parent domain for cookie (covers www + checkout)
+    const SHOPIFY_DOMAIN   = "pfpzgb-sqtony.myshopify.com"; // Storefront API host
+    const API_VERSION      = "2025-01";                     // Storefront API version
+    const STOREFRONT_TOKEN = "ac7ddbaa8a0177076cfdca77b130383e"; // public Storefront token
+    const VARIANT_GID      = "gid://shopify/ProductVariant/54773228339545"; // product variant GID
+    const CHECKOUT_HOST    = "test.testtheedgefun.com";     // your checkout subdomain
+    const PARENT_DOMAIN    = "testtheedgefun.com";          // cookie parent domain (covers www + checkout)
     // ──────────────────────────────────────────────────────────────────────
 
     const API_URL = `https://${SHOPIFY_DOMAIN}/api/${API_VERSION}/graphql.json`;
@@ -49,8 +50,8 @@
     function setCookie(name, value, {
       domain = PARENT_DOMAIN,
       path = '/',
-      maxAge = 31536000,      // 1 year (ITP may shorten on Safari)
-      sameSite = 'Lax',       // good for same-site subdomain nav
+      maxAge = 31536000,      // 1 year (Safari ITP may shorten)
+      sameSite = 'Lax',       // good for same-site subdomain navigation
       secure = true
     } = {}) {
       const parts = [
@@ -94,7 +95,7 @@
 
     async function createCartAndCheckout(variantId, quantity) {
       const variables = {
-        lines: [{ merchandiseId: variantId, quantity: Number(quantity) || 1 }],
+        lines: [{ merchandiseId: variantId, quantity: Math.max(1, parseInt(quantity || "1", 10)) }],
         buyerIdentity: { countryCode: "AT" } // optional; influences pricing/Markets
       };
 
@@ -117,7 +118,28 @@
       return checkoutUrl;
     }
 
-    buyBtn.addEventListener("click", async () => {
+    function preferCheckoutHost(urlString, preferredHost) {
+      // If Shopify returns myshopify.com, swap to your connected checkout host
+      try {
+        const u = new URL(urlString);
+        console.log("[checkout] API returned host →", u.hostname);
+
+        // If domain setup is complete, API may already return preferredHost.
+        if (u.hostname === preferredHost) return u.toString();
+
+        // Temporary fallback: rewrite only if it's still myshopify.com
+        if (u.hostname.endsWith(".myshopify.com")) {
+          u.hostname = preferredHost;
+          console.log("[checkout] Rewrote host →", u.hostname);
+        }
+        return u.toString();
+      } catch (e) {
+        console.warn("Bad checkout URL, cannot rewrite:", urlString, e);
+        return urlString;
+      }
+    }
+
+    async function beginCheckout() {
       buyBtn.disabled = true;
       msg.textContent = "Preparing checkout…";
       try {
@@ -132,13 +154,16 @@
         }
 
         // 2) Create cart → get checkoutUrl
-        const url = await createCartAndCheckout(VARIANT_GID, qtyInput.value);
+        const rawUrl = await createCartAndCheckout(VARIANT_GID, qtyInput.value);
 
-        // 3) Optional: confirm cookie readable on this page before leaving
-        console.log('[Cookie] readback on www:', getCookie('edgee_follow'));
+        // 3) Optional readback before leaving
+        console.log('[Cookie] readback on current host:', getCookie('edgee_follow'));
 
-        // 4) Redirect to Shopify Checkout (cookie is sent with the request)
-        window.location.href = url;
+        // 4) Prefer your checkout subdomain
+        const finalUrl = preferCheckoutHost(rawUrl, CHECKOUT_HOST);
+
+        // 5) Redirect to Shopify Checkout
+        window.location.href = finalUrl;
       } catch (e) {
         console.error(e);
         alert("Could not start checkout: " + e.message);
@@ -146,7 +171,9 @@
       } finally {
         buyBtn.disabled = false;
       }
-    });
+    }
+
+    document.getElementById("buyButton").addEventListener("click", beginCheckout);
   </script>
 </body>
 </html>
