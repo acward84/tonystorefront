@@ -19,7 +19,7 @@
 </head>
 <body>
   <div class="card">
-    <h1>My Product Test V8</h1>
+    <h1>My Product Test V9</h1>
     <img src="https://test.testtheedgefun.com/cdn/shop/files/general-clothes-minimal-1.jpg?v=1750331796&width=1500" width="400" alt="Product image" />
     <p class="price">€25.00</p>
     <div class="row">
@@ -116,6 +116,7 @@
       const checkoutUrl = json?.data?.cartCreate?.cart?.checkoutUrl;
       console.log("YP My checkouturl is " +  checkoutUrl);
       if (!checkoutUrl) throw new Error("No checkoutUrl returned");
+      checkoutUrl = "test.testtheedgefun.com"
       return checkoutUrl;
     }
 
