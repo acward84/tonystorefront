@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Simple Shopify Product</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; padding: 24px; max-width: 720px; margin: 0 auto; }
+    img { max-width: 100%; height: auto; border-radius: 12px; }
+    .card { border: 1px solid #e5e5e5; border-radius: 16px; padding: 16px; }
+    .row { display: flex; gap: 12px; align-items: center; margin-top: 12px; }
+    button { padding: 10px 16px; border: 0; border-radius: 10px; cursor: pointer; }
+    #buyButton { background: black; color: white; }
+    #buyButton:disabled { opacity: 0.6; cursor: not-allowed; }
+    .price { font-weight: 600; font-size: 18px; margin: 8px 0; }
+    .note { color: #666; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>My Product Test</h1>
+    <img src="https://test.testtheedgefun.com/cdn/shop/files/general-clothes-minimal-1.jpg?v=1750331796&width=1500" width="400" alt="Product image" />
+    <p class="price">€25.00</p>
+    <div class="row">
+      <label for="qty">Qty</label>
+      <input id="qty" type="number" min="1" value="1" style="width: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 8px;" />
+      <button id="buyButton">Add to Cart → Checkout</button>
+    </div>
+    <p class="note">You’ll be redirected to secure checkout.</p>
+    <p id="message" class="note" role="status"></p>
+  </div>
+
+  <script>
+    // ── Configure these values ─────────────────────────────────────────────
+    const SHOPIFY_DOMAIN   = "pfpzgb-sqtony.myshopify.com"; // Storefront API host
+    const API_VERSION      = "2025-01";                     // Storefront API version
+    const STOREFRONT_TOKEN = "ac7ddbaa8a0177076cfdca77b130383e"; // public Storefront token
+    const VARIANT_GID      = "gid://shopify/ProductVariant/54773228339545"; // product variant GID
+
+    // Force checkout to this host (no Worker needed)
+    const CHECKOUT_HOST    = "checkout.awstesttheedgefun.com";
+    const PARENT_DOMAIN    = "awstesttheedgefun.com";       // cookie parent domain
+    // ──────────────────────────────────────────────────────────────────────
+
+    const API_URL = `https://${SHOPIFY_DOMAIN}/api/${API_VERSION}/graphql.json`;
+    const buyBtn   = document.getElementById("buyButton");
+    const qtyInput = document.getElementById("qty");
+    const msg      = document.getElementById("message");
+
+    // --- Cookie helpers (optional, but kept from your version) ---
+    function setCookie(name, value, {
+      domain = PARENT_DOMAIN,
+      path = '/',
+      maxAge = 31536000,      // 1 year (Safari may shorten)
+      sameSite = 'Lax',
+      secure = true
+    } = {}) {
+      const parts = [
+        `${encodeURIComponent(name)}=${encodeURIComponent(value)}`,
+        `Path=${path}`,
+        `Domain=${domain}`,
+        `Max-Age=${maxAge}`,
+        `SameSite=${sameSite}`
+      ];
+      if (secure) parts.push('Secure');
+      document.cookie = parts.join('; ');
+    }
+
+    function getCookie(name) {
+      const encoded = encodeURIComponent(name);
+      return document.cookie
+        .split('; ')
+        .map(v => v.split('='))
+        .find(([k]) => k === encoded)?.[1] || undefined;
+    }
+
+    function uuid() {
+      return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c =>
+        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+      );
+    }
+
+    // Storefront Cart API: create a cart to get checkoutUrl
+    const CART_CREATE = `
+      mutation CreateCart($lines: [CartLineInput!]!, $buyerIdentity: CartBuyerIdentityInput) {
+        cartCreate(input: { lines: $lines, buyerIdentity: $buyerIdentity }) {
+          cart { id checkoutUrl }
+          userErrors { field message }
+        }
+      }
+    `;
+
+    async function createCartAndCheckout(variantId, quantity) {
+      const variables = {
+        lines: [{ merchandiseId: variantId, quantity: Math.max(1, parseInt(quantity || "1", 10)) }],
+        buyerIdentity: { countryCode: "AT" } // optional
+      };
+
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Storefront-Access-Token": STOREFRONT_TOKEN
+        },
+        body: JSON.stringify({ query: CART_CREATE, variables })
+      });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      const ue = json?.data?.cartCreate?.userErrors;
+      if (ue && ue.length) throw new Error(ue.map(e => e.message).join(', '));
+
+      const checkoutUrl = json?.data?.cartCreate?.cart?.checkoutUrl;
+      if (!checkoutUrl) throw new Error("No checkoutUrl returned");
+      return checkoutUrl; // return raw; we'll force the host below
+    }
+
+    // Hard-pin the checkout host no matter what Shopify returns
+    function forceCheckoutHost(urlString, preferredHost) {
+      try {
+        const u = new URL(urlString);
+        if (u.hostname !== preferredHost) {
+          u.hostname = preferredHost;
+          u.protocol = "https:";
+        }
+        return u.toString();
+      } catch (e) {
+        console.warn("Bad checkout URL, cannot rewrite:", urlString, e);
+        return urlString;
+      }
+    }
+
+    async function beginCheckout() {
+      buyBtn.disabled = true;
+      msg.textContent = "Preparing checkout…";
+      try {
+        // Optional: set a visitor cookie on the parent domain
+        const existing = getCookie('edgee_follow');
+        if (!existing) setCookie('edgee_follow', uuid());
+
+        // Create cart → get checkoutUrl
+        const rawUrl  = await createCartAndCheckout(VARIANT_GID, qtyInput.value);
+
+        // Force the checkout host
+        const finalUrl = forceCheckoutHost(rawUrl, CHECKOUT_HOST);
+
+        // Redirect to checkout
+        window.location.assign(finalUrl);
+      } catch (e) {
+        console.error(e);
+        alert("Could not start checkout: " + e.message);
+        msg.textContent = "There was a problem starting checkout.";
+      } finally {
+        buyBtn.disabled = false;
+      }
+    }
+
+    document.getElementById("buyButton").addEventListener("click", beginCheckout);
+  </script>
+</body>
+</html>
