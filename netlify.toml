@@ -1,2 +1,8 @@
 [build]
   functions = "netlify/functions"
+
+[[redirects]]
+  from = "/cookie-reader"
+  to = "/.netlify/functions/cookie-reader"
+  status = 200
+  force = true
