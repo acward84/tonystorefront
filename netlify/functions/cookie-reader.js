@@ -1,15 +1,7 @@
 const ALLOW_ORIGINS = [
-  // Your storefront (theme) domain(s)
-  'https://<your-shop>.myshopify.com',
-  'https://www.<your-custom-shop-domain>.com',
-
-  // Shopify checkout can come from a different origin depending on your setup
-  // Add it if different from the storefront origin
-  'https://checkout.<your-custom-shop-domain>.com',
-  // or sometimes
-  'https://checkout.shopify.com', // include only if you actually see this as Origin
-  // For local testing (optional)
-  // 'http://localhost:3000',
+  // Put your actual storefront/checkout origins here:
+  'https://checkout.testtheedgefun.com',   // if your storefront is here
+  'https://www.testtheedgefun.com'        // calling directly from same site is fine too
 ];
 
 function corsHeaders(origin) {
@@ -25,7 +17,7 @@ export async function handler(event) {
   const origin = event.headers.origin || '';
   const allowedOrigin = ALLOW_ORIGINS.includes(origin) ? origin : '';
 
-  // Handle preflight
+  // Preflight
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 204,
@@ -34,16 +26,10 @@ export async function handler(event) {
     };
   }
 
-  // Read cookie from request
+  // Read cookie (set by your proxy) from the incoming request
   const cookieHeader = event.headers.cookie || '';
   const match = cookieHeader.match(/(?:^|;\s*)edgeeasph=([^;]+)/);
   const edgeeasph = match ? decodeURIComponent(match[1]) : null;
-
-  // Optional server-side logging to verify hits in Netlify logs
-  console.log('cookie-reader hit', {
-    origin,
-    hasCookie: Boolean(edgeeasph),
-  });
 
   return {
     statusCode: 200,
