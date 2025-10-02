@@ -1,42 +1,25 @@
-const ALLOW_ORIGINS = [
-  // Put your actual storefront/checkout origins here:
-  'https://checkout.testtheedgefun.com',   // if your storefront is here
-  'https://www.testtheedgefun.com'        // calling directly from same site is fine too
-];
-
-function corsHeaders(origin) {
-  return {
-    'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Credentials': 'true',
-    'Access-Control-Allow-Methods': 'GET,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
-}
-
 export async function handler(event) {
-  const origin = event.headers.origin || '';
-  const allowedOrigin = ALLOW_ORIGINS.includes(origin) ? origin : '';
-
-  // Preflight
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 204,
-      headers: allowedOrigin ? corsHeaders(allowedOrigin) : {},
-      body: '',
-    };
-  }
-
-  // Read cookie (set by your proxy) from the incoming request
   const cookieHeader = event.headers.cookie || '';
-  const match = cookieHeader.match(/(?:^|;\s*)edgeeasph=([^;]+)/);
-  const edgeeasph = match ? decodeURIComponent(match[1]) : null;
+
+  // Parse cookies into an object
+  const cookies = {};
+  if (cookieHeader) {
+    cookieHeader.split(';').forEach(pair => {
+      const idx = pair.indexOf('=');
+      if (idx > -1) {
+        const key = pair.slice(0, idx).trim();
+        const val = pair.slice(idx + 1).trim();
+        cookies[key] = decodeURIComponent(val);
+      }
+    });
+  }
 
   return {
     statusCode: 200,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(allowedOrigin ? corsHeaders(allowedOrigin) : {}),
-    },
-    body: JSON.stringify({ edgeeasph }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      raw: cookieHeader || null,
+      parsed: cookies
+    }, null, 2)
   };
 }
