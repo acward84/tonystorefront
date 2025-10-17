@@ -20,7 +20,7 @@
 <body>
   <div class="card">
     <h1>My Product Test v10</h1>
-    <img src="https://test.testtheedgefun.com/cdn/shop/files/general-clothes-minimal-1.jpg?v=1750331796&width=1500" width="400" alt="Product image" />
+    <img src="https://checkout.testtheedgefun.com/cdn/shop/files/general-clothes-minimal-1.jpg?v=1750331796&width=1500" width="400" alt="Product image" />
     <p class="price">€25.00</p>
     <div class="row">
       <label for="qty">Qty</label>
@@ -116,7 +116,7 @@
       const checkoutUrl = json?.data?.cartCreate?.cart?.checkoutUrl;
       console.log("YP My checkouturl is " +  checkoutUrl);
       if (!checkoutUrl) throw new Error("No checkoutUrl returned");
-      let updated = checkoutUrl.replace("https://checkout.", "https://test.");
+      let updated = checkoutUrl.replace("https://checkout.", "https://checkout.");
       return checkoutUrl;
     }
 
