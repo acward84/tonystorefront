@@ -30,8 +30,8 @@ export async function handler(event, context) {
   // Generate state for CSRF protection
   const state = crypto.randomBytes(16).toString('hex');
   
-  // Build OAuth URL
-  const redirectUri = `${SHOPIFY_HOST}/api/auth/callback`;
+  // Build OAuth URL with /shopapp path
+  const redirectUri = `${SHOPIFY_HOST}/shopapp/auth/callback`;
   
   const authUrl = `https://${shop}/admin/oauth/authorize?` +
     `client_id=${SHOPIFY_API_KEY}` +
