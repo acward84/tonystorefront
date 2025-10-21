@@ -1,0 +1,28 @@
+client_id = "fe96bd42fbd6cefd2545913ab634120d"
+name = "claudesdk"
+application_url = "https://edgee.testtheedgefun.com"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+include_config_on_deploy = true
+
+[webhooks]
+api_version = "2025-01"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app-uninstalled"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/scopes_update" ]
+  uri = "/webhooks/app-scopes-update"
+
+[access_scopes]
+scopes = "write_pixels,read_pixels,read_customer_events,read_customers,read_orders,read_analytics"
+
+[auth]
+redirect_urls = [ 
+  "https://edgee.testtheedgefun.com/api/auth",
+  "https://edgee.testtheedgefun.com/api/auth/callback"
+]
