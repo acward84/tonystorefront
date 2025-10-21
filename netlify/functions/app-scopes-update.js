@@ -1,8 +1,8 @@
-import crypto from 'crypto';
+const crypto = require('crypto');
 
 const { SHOPIFY_API_SECRET } = process.env;
 
-export async function handler(event, context) {
+exports.handler = async (event, context) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
@@ -28,11 +28,8 @@ export async function handler(event, context) {
   const payload = JSON.parse(event.body);
   console.log('New scopes:', payload);
 
-  // TODO: Update scopes in your database
-  // await updateShopScopes(shop, payload.scopes);
-
   return {
     statusCode: 200,
     body: JSON.stringify({ message: 'Webhook processed' })
   };
-}
+};
