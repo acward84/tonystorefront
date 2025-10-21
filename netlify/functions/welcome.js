@@ -1,4 +1,4 @@
-export async function handler(event, context) {
+exports.handler = async (event, context) => {
   const { shop } = event.queryStringParameters || {};
 
   const html = `
@@ -7,7 +7,7 @@ export async function handler(event, context) {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Welcome - Shopify App</title>
+      <title>Welcome - ClaudeSDK App</title>
       <style>
         * {
           margin: 0;
@@ -143,36 +143,4 @@ export async function handler(event, context) {
     },
     body: html
   };
-}
-```
-
----
-
-### **6. Keep `netlify/functions/app-uninstalled.js` & `app-scopes-update.js`**
-
-These remain the same (no changes needed).
-
----
-
-## 🚀 Your URL Structure:
-
-| URL | Purpose |
-|-----|---------|
-| `https://edgee.testtheedgefun.com/` | Your storefront |
-| `https://edgee.testtheedgefun.com/shopapp/auth` | Start OAuth |
-| `https://edgee.testtheedgefun.com/shopapp/auth/callback` | OAuth callback |
-| `https://edgee.testtheedgefun.com/shopapp/welcome` | Success page ✨ |
-| `https://edgee.testtheedgefun.com/shopapp/webhooks/*` | Webhooks |
-
----
-
-## ✅ Testing:
-
-After deploying to Netlify, test with:
-```
-https://edgee.testtheedgefun.com/shopapp/auth?shop=YOUR-STORE.myshopify.com
-```
-
-After successful auth, you'll be redirected to:
-```
-https://edgee.testtheedgefun.com/shopapp/welcome?shop=YOUR-STORE.myshopify.com
+};
