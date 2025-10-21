@@ -64,18 +64,15 @@ export async function handler(event, context) {
     console.log('✅ App installed successfully for shop:', shop);
 
     // TODO: Store access token in your database
-    // For now, we'll just log it (DO NOT DO THIS IN PRODUCTION)
-    console.log('Access token received (store this securely!)');
+    console.log('Access token received - store this securely!');
 
-    // Redirect to success page or app
-    const redirectUrl = host 
-      ? `https://${shop}/admin/apps/${SHOPIFY_API_KEY}?host=${encodeURIComponent(host)}`
-      : `https://${shop}/admin/apps/${SHOPIFY_API_KEY}`;
+    // Redirect to your welcome page
+    const welcomeUrl = `${SHOPIFY_HOST}/shopapp/welcome?shop=${shop}`;
 
     return {
       statusCode: 302,
       headers: {
-        'Location': redirectUrl
+        'Location': welcomeUrl
       },
       body: ''
     };
