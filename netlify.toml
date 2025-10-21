@@ -1,14 +1,4 @@
 [build]
-  functions = "netlify/functions"
-
-[[redirects]]
-  from = "/cookie-reader"
-  to = "/.netlify/functions/cookie-reader"
-  status = 200
-  force = true
-
-
-[build]
   command = "npm run build"
   publish = "public"
   functions = "netlify/functions"
@@ -16,28 +6,38 @@
 [functions]
   node_bundler = "esbuild"
 
-# API routes for Shopify auth
+# Shopify App Routes (all under /shopapp)
 [[redirects]]
-  from = "/api/auth"
+  from = "/shopapp/auth"
   to = "/.netlify/functions/auth"
   status = 200
+  force = true
 
 [[redirects]]
-  from = "/api/auth/callback"
+  from = "/shopapp/auth/callback"
   to = "/.netlify/functions/auth-callback"
   status = 200
+  force = true
 
 [[redirects]]
-  from = "/webhooks/app-uninstalled"
+  from = "/shopapp/webhooks/app-uninstalled"
   to = "/.netlify/functions/app-uninstalled"
   status = 200
+  force = true
 
 [[redirects]]
-  from = "/webhooks/app-scopes-update"
+  from = "/shopapp/webhooks/app-scopes-update"
   to = "/.netlify/functions/app-scopes-update"
   status = 200
+  force = true
 
-# Existing Remix routes
+[[redirects]]
+  from = "/shopapp/welcome"
+  to = "/.netlify/functions/welcome"
+  status = 200
+  force = true
+
+# Storefront Routes (everything else goes to Remix)
 [[redirects]]
   from = "/*"
   to = "/.netlify/functions/server"
