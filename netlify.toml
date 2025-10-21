@@ -6,3 +6,39 @@
   to = "/.netlify/functions/cookie-reader"
   status = 200
   force = true
+
+
+[build]
+  command = "npm run build"
+  publish = "public"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# API routes for Shopify auth
+[[redirects]]
+  from = "/api/auth"
+  to = "/.netlify/functions/auth"
+  status = 200
+
+[[redirects]]
+  from = "/api/auth/callback"
+  to = "/.netlify/functions/auth-callback"
+  status = 200
+
+[[redirects]]
+  from = "/webhooks/app-uninstalled"
+  to = "/.netlify/functions/app-uninstalled"
+  status = 200
+
+[[redirects]]
+  from = "/webhooks/app-scopes-update"
+  to = "/.netlify/functions/app-scopes-update"
+  status = 200
+
+# Existing Remix routes
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/server"
+  status = 200
