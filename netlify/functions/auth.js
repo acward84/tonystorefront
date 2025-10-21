@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+const crypto = require('crypto');
 
 const {
   SHOPIFY_API_KEY = 'fe96bd42fbd6cefd2545913ab634120d',
@@ -8,7 +8,7 @@ const {
 
 const SCOPES = 'write_pixels,read_pixels,read_customer_events,read_customers,read_orders,read_analytics';
 
-export async function handler(event, context) {
+exports.handler = async (event, context) => {
   const { shop, host } = event.queryStringParameters || {};
 
   if (!shop) {
@@ -30,7 +30,7 @@ export async function handler(event, context) {
   // Generate state for CSRF protection
   const state = crypto.randomBytes(16).toString('hex');
   
-  // Build OAuth URL with /shopapp path
+  // Build OAuth URL
   const redirectUri = `${SHOPIFY_HOST}/shopapp/auth/callback`;
   
   const authUrl = `https://${shop}/admin/oauth/authorize?` +
@@ -50,4 +50,4 @@ export async function handler(event, context) {
     },
     body: ''
   };
-}
+};
