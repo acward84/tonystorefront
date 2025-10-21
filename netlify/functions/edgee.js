@@ -4,6 +4,21 @@ let log = []; // shared while the function container is warm
 export default async (req) => {
   const url = new URL(req.url);
 
+  // Common CORS headers
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",            // or specify your domain
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  };
+
+  // --- handle preflight (CORS OPTIONS) ---
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders,
+    });
+  }
+
   // --- tracker view ---
   if (url.pathname.endsWith("/tracker")) {
     return new Response(
@@ -11,7 +26,7 @@ export default async (req) => {
       <html>
         <head>
           <title>Edgee Tracker</title>
-          <meta http-equiv="refresh" content="5"> <!-- auto-refresh every 5s -->
+          <meta http-equiv="refresh" content="5">
           <style>
             body { font-family: sans-serif; margin: 2rem; }
             pre { background:#f7f7f7; padding:1rem; border-radius:8px; overflow-x:auto; }
@@ -30,7 +45,7 @@ export default async (req) => {
         </body>
       </html>
       `,
-      { headers: { "Content-Type": "text/html" } }
+      { headers: { ...corsHeaders, "Content-Type": "text/html" } }
     );
   }
 
@@ -38,14 +53,16 @@ export default async (req) => {
   if (req.method === "POST") {
     const body = await req.json();
     log.unshift({ ts: new Date().toISOString(), payload: body });
-    log = log.slice(0, 100); // keep last 100 entries
+    log = log.slice(0, 100);
     return new Response(JSON.stringify({ ok: true }), {
-      headers: { "Content-Type": "application/json" },
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
   // --- fallback for GET /
   return new Response("Edgee function ready", {
-    headers: { "Content-Type": "text/plain" },
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "text/plain" },
   });
 };
