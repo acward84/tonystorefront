@@ -2,7 +2,7 @@ import crypto from 'crypto';
 
 const {
   SHOPIFY_API_KEY = 'fe96bd42fbd6cefd2545913ab634120d',
-  SHOPIFY_API_SECRET,
+  SHOPIFY_API_SECRET = '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',
   SHOPIFY_HOST = 'https://edgee.testtheedgefun.com'
 } = process.env;
 
