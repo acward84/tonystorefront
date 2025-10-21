@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+const crypto = require('crypto');
 
 const {
   SHOPIFY_API_KEY = 'fe96bd42fbd6cefd2545913ab634120d',
@@ -6,7 +6,7 @@ const {
   SHOPIFY_HOST = 'https://edgee.testtheedgefun.com'
 } = process.env;
 
-export async function handler(event, context) {
+exports.handler = async (event, context) => {
   const { code, shop, state, hmac, host } = event.queryStringParameters || {};
 
   if (!code || !shop || !state) {
@@ -62,11 +62,9 @@ export async function handler(event, context) {
     }
 
     console.log('✅ App installed successfully for shop:', shop);
-
-    // TODO: Store access token in your database
     console.log('Access token received - store this securely!');
 
-    // Redirect to your welcome page
+    // Redirect to welcome page
     const welcomeUrl = `${SHOPIFY_HOST}/shopapp/welcome?shop=${shop}`;
 
     return {
@@ -84,4 +82,4 @@ export async function handler(event, context) {
       body: JSON.stringify({ error: 'Authentication failed', details: error.message })
     };
   }
-}
+};
