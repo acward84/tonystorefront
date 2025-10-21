@@ -1,8 +1,8 @@
-import crypto from 'crypto';
+const crypto = require('crypto');
 
 const { SHOPIFY_API_SECRET } = process.env;
 
-export async function handler(event, context) {
+exports.handler = async (event, context) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
@@ -25,12 +25,9 @@ export async function handler(event, context) {
   }
 
   console.log('🗑️ App uninstalled from shop:', shop);
-  
-  // TODO: Clean up shop data from your database
-  // await deleteShopData(shop);
 
   return {
     statusCode: 200,
     body: JSON.stringify({ message: 'Webhook processed' })
   };
-}
+};
