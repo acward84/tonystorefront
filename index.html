@@ -16,6 +16,15 @@
     .price { font-weight: 600; font-size: 18px; margin: 8px 0; }
     .note { color: #666; font-size: 14px; }
   </style>
+    {%- assign full_url = canonical_url | split: \'://www.\' | last | split: \'://\' | last -%}
+<link rel="alternate" hreflang="en" href="{{ canonical_url }}">
+<link rel="alternate" hreflang="fr" href="https://fr.{{ full_url }}">
+<script type="text/javascript" src="https://cdn.weglot.com/weglot.min.js"></script>
+<script>
+    Weglot.initialize({
+        api_key: 'wg_2c24c8c37a822d94a0e968ec36d78bea5'
+    });
+</script>
 </head>
 <body>
   {%- assign full_url = canonical_url | split: \'://www.\' | last | split: \'://\' | last -%}
