@@ -18,6 +18,15 @@
   </style>
 </head>
 <body>
+  {%- assign full_url = canonical_url | split: \'://www.\' | last | split: \'://\' | last -%}
+<link rel="alternate" hreflang="en" href="{{ canonical_url }}">
+<link rel="alternate" hreflang="fr" href="https://fr.{{ full_url }}">
+<script type="text/javascript" src="https://cdn.weglot.com/weglot.min.js"></script>
+<script>
+    Weglot.initialize({
+        api_key: 'wg_2c24c8c37a822d94a0e968ec36d78bea5'
+    });
+</script>
   <div class="card">
     <h1>My Product Test v10</h1>
     <img src="checkout.testtheedgefun.com/cdn/shop/files/soap-image-1.png?v=1759828339&width=3840" width="400" alt="Product image" />
